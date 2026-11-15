@@ -1,0 +1,9 @@
+{
+ "name": "個人用難易度表",
+ "symbol": "me",
+ "data_url": "data.json",
+ "level_order": [
+  "1 適正",
+  "2 挑戦"
+ ]
+}
