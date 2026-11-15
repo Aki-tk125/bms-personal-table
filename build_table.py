@@ -4,8 +4,8 @@
 """
 import sqlite3, json, sys, shutil, tempfile, os, collections
 DATA = os.path.join(sys.argv[1], "data"); OUT = sys.argv[2]
-SRC = {"Satellite": 7, "Stella": 6, "NG通常": 4, "NG発狂": 3}   # 基準にする表(名前, library.db の table id)
-FOLLOW = {"Stella": "Satellite"}   # 自分でレベル判定できない表は、指定の表の得意レベル値を目安にする
+SRC = {"Satellite": 7, "発狂BMS": 2, "NG通常": 4, "NG発狂": 3}   # 基準にする表(名前, library.db の table id)
+FOLLOW = {}   # 自分でレベル判定できない表を、他の表の得意レベルで代用する場合に指定
 CLEARED = {"LightAssistEasy","Easy","Normal","Hard","ExHard","FullCombo","Perfect","Max"}
 tmp = tempfile.mkdtemp()
 for f in ("library.db",):
