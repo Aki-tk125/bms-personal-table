@@ -6,6 +6,10 @@ import sqlite3, json, sys, shutil, tempfile, os, collections
 DATA = os.path.join(sys.argv[1], "data"); OUT = sys.argv[2]
 SRC = {"Satellite": 7, "発狂BMS": 2, "NG発狂": 3}   # 基準にする表(名前, library.db の table id)
 FOLLOW = {"Stella": "Satellite"}   # 自分でレベル判定できない表は、指定の表の得意レベル値を目安にする
+# ランプの重み(得意レベルの判定用)。FAILED は 0、NOPLAY は数えない
+WEIGHT = {"Failed": 0, "LightAssistEasy": 0.25, "Easy": 0.5, "Normal": 0.75, "Hard": 1, "ExHard": 1, "FullCombo": 1, "Perfect": 1, "Max": 1}
+MIN_PLAYED = 5      # 判定に必要なプレイ数(レベルごと)
+MIN_AVG = 0.3       # このレベルの平均点がこの値以上なら「得意」
 CLEARED = {"LightAssistEasy","Easy","Normal","Hard","ExHard","FullCombo","Perfect","Max"}
 tmp = tempfile.mkdtemp()
 for f in ("library.db",):
@@ -30,11 +34,11 @@ for name, tid in SRC.items():
     sym, lo = l.execute("select symbol, level_order from difficulty_tables where id=?", (tid,)).fetchone()
     order = json.loads(lo); idx = {v: i for i, v in enumerate(order)}
     ents = l.execute("select level, md5, sha256, title, artist, url from difficulty_table_entries where table_id=?", (tid,)).fetchall()
-    st = collections.defaultdict(lambda: [0, 0])   # idx -> [played, cleared]
+    st = collections.defaultdict(lambda: [0, 0.0])   # idx -> [played, weight_sum]
     for lv, m, _, _, _, _ in ents:
         if m in chart and chart[m][0] in best and best[chart[m][0]] != "NoPlay" and lv in idx:
-            st[idx[lv]][0] += 1; st[idx[lv]][1] += best[chart[m][0]] in CLEARED
-    ab = max([i for i, (p, c) in st.items() if p >= 5 and c / p >= 0.5], default=None)
+            st[idx[lv]][0] += 1; st[idx[lv]][1] += WEIGHT.get(best[chart[m][0]], 0)
+    ab = max([i for i, (p, w) in st.items() if p >= MIN_PLAYED and w / p >= MIN_AVG], default=None)
     if ab is None and name in FOLLOW and FOLLOW[name] in abil and abil[FOLLOW[name]] in order:
         ab = idx[abil[FOLLOW[name]]]; report.append(f"{name}: 判定不可のため {FOLLOW[name]} の得意レベル値を使用")
     if ab is not None: abil[name] = order[ab]
