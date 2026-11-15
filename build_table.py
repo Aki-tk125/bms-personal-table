@@ -26,7 +26,8 @@ chart = {}   # md5 -> (sha256, title, artist)
 for sh, m, t, a in l.execute("select sha256, md5, title, artist from charts"):
     chart.setdefault(m, (sh, t, a))
 
-LAB = {"fit": "1 適正", "chal": "2 挑戦"}
+LAB = {"warm": "0 ウォーミングアップ", "fit": "1 適正", "chal": "2 挑戦"}   # 表示順
+PRIORITY = {"fit": 0, "chal": 1, "warm": 2}   # 同じ譜面が複数の表にある場合の優先順
 abil = {}
 cands = {}   # md5 -> (rank, entry)
 report = []
@@ -49,14 +50,15 @@ for name, tid in SRC.items():
         d = idx[lv] - ab
         ct = best.get(chart[m][0])
         if ct in CLEARED: continue
-        kind = "fit" if d == 0 else "chal" if d == 1 else None   # 未プレイ・失敗済みの区別なく、適正と挑戦のみ
+        kind = "warm" if -3 <= d <= -1 else "fit" if d == 0 else "chal" if d == 1 else None   # 未プレイ・失敗済みの区別なく、適正と挑戦のみ
         if not kind: continue
-        rank = (list(LAB).index(kind), abs(d))
+        rank = (PRIORITY[kind], abs(d))
         e = {"md5": m, "sha256": chart[m][0], "title": t or chart[m][1], "artist": a or chart[m][2],
              "level": LAB[kind], "comment": f"{sym}{lv}", "url": url or ""}
         if m not in cands or rank < cands[m][0]: cands[m] = (rank, e)
 
-data = [e for _, e in sorted(cands.values(), key=lambda x: (x[0], x[1]["comment"]))]
+order_of = {v: i for i, v in enumerate(LAB.values())}
+data = [e for _, e in sorted(cands.values(), key=lambda x: (order_of[x[1]["level"]], x[0][1], x[1]["comment"]))]
 os.makedirs(OUT, exist_ok=True)
 json.dump(data, open(os.path.join(OUT, "data.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 json.dump({"name": "個人用難易度表", "symbol": "me", "data_url": "data.json", "level_order": list(LAB.values())},
