@@ -5,6 +5,9 @@
  "level_order": [
   "0 ウォーミングアップ",
   "1 適正",
-  "2 挑戦"
+  "2 挑戦",
+  "3 ASSIST EASY→EASY",
+  "4 EASY→NORMAL",
+  "5 NORMAL→HARD"
  ]
 }
