@@ -50,8 +50,15 @@ NO PLAY は数えません。点数としきい値は `build_table.py` の先頭
 
 ## 更新
 
-`build_table.py` でスコアとライブラリから再生成できます。
+`build_table.py` でスコアとライブラリから再生成できます。再生成のあと、`update_readme.py` で下の履歴に得意レベルを追記します。
 
 ```
 python3 build_table.py <01_Playerのパス> <出力フォルダ>
 ```
+
+## 得意レベルの履歴
+
+更新するたびに、そのときの得意レベルを記録しています。
+
+- 2026-11-15: Satellite 4 / 発狂BMS 5 / NG発狂 7（掲載 552件）
+- 2026-11-21: Satellite 4 / 発狂BMS 5 / NG発狂 7（掲載 577件）

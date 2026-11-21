@@ -2,7 +2,7 @@
 """bmz-player のスコア/ライブラリから個人用難易度表(header.json/data.json)を作る。
 使い方: python3 -I build_table.py <01_Playerのパス> <出力フォルダ>
 """
-import sqlite3, json, sys, shutil, tempfile, os, collections
+import sqlite3, json, sys, shutil, tempfile, os, collections, datetime
 
 SRC = {"Satellite": 7, "発狂BMS": 2, "NG発狂": 3}   # 基準にする表(名前, library.db の table id)
 FOLLOW = {}   # 自分でレベル判定できない表を、他の表の得意レベルで代用する場合に指定
@@ -80,4 +80,8 @@ os.makedirs(OUT, exist_ok=True)
 json.dump(data, open(os.path.join(OUT, "data.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 json.dump({"name": "個人用難易度表", "symbol": "me", "data_url": "data.json", "level_order": list(LAB.values())},
           open(os.path.join(OUT, "header.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+# README の「得意レベルの履歴」に追記するための記録(update_readme.py が読む)
+jst = datetime.timezone(datetime.timedelta(hours=9))
+json.dump({"date": datetime.datetime.now(jst).strftime("%Y-%m-%d"), "levels": abil, "total": len(data)},
+          open(os.path.join(OUT, "history.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print("\n".join(report)); print("掲載件数/候補件数:", counts, "計", len(data))
