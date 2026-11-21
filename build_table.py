@@ -47,6 +47,7 @@ try:
     best = dict(s.execute("select chart_sha256, clear_type from score_best"))
     chart = {}   # md5 -> (sha256, title, artist)
     for sh, m, t, a in l.execute("select sha256, md5, title, artist from charts"): chart.setdefault(m, (sh, t, a))
+    tbl_entries = list(l.execute("select table_id, level, md5 from difficulty_table_entries where table_id in (7,2,3)"))
     l.close(); s.close()
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
@@ -99,9 +100,22 @@ os.makedirs(OUT, exist_ok=True)
 json.dump(data, open(os.path.join(OUT, "data.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 json.dump({"name": "個人用難易度表", "symbol": "me", "data_url": "data.json", "level_order": list(LAB.values())},
           open(os.path.join(OUT, "header.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+# 各難易度表で、得意レベルに相当するレベル帯(その表のレベルごとの★中央値が a±0.5 に入るレベル。なければ最も近いレベル)
+SYMBOL = {7: ("Satellite", "sl"), 2: ("発狂BMS", "★"), 3: ("NG発狂", "▼")}
+def band(tid):
+    g = collections.defaultdict(list)
+    for t_id, lv, m in tbl_entries:
+        if t_id == tid and m in est and lv.isdigit(): g[int(lv)].append(est[m][0])
+    med = {lv: sorted(v)[len(v) // 2] for lv, v in g.items() if len(v) >= 3}
+    if not med: return "-"
+    near = sorted(lv for lv, v in med.items() if abs(v - a) <= 0.5) or [min(med, key=lambda lv: abs(med[lv] - a))]
+    sym = SYMBOL[tid][1]
+    return f"{sym}{near[0]}" if near[0] == near[-1] else f"{sym}{near[0]}〜{near[-1]}"
+levels = {"★尺度": f"★{a:.1f}"}
+for tid in (7, 2, 3): levels[SYMBOL[tid][0]] = band(tid)
 # README の「得意レベルの履歴」に追記するための記録(update_readme.py が読む)
 jst = datetime.timezone(datetime.timedelta(hours=9))
-json.dump({"date": datetime.datetime.now(jst).strftime("%Y-%m-%d"), "levels": {"得意レベル(★)": f"{a:.1f}"},
+json.dump({"date": datetime.datetime.now(jst).strftime("%Y-%m-%d"), "levels": levels,
            "note": f"90%区間 ★{lo:.1f}〜{hi:.1f}", "total": len(data)},
           open(os.path.join(OUT, "history.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"推定付き {len(est)} 譜面(除外 {dict(skipped)})、所持 {n_owned}、プレイ済み {len(played)}")
