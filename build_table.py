@@ -62,6 +62,22 @@ for m in [m for m in est if m not in target_md5]: del est[m]; skipped["対象表
 ln_md5 = {m for t_id, _, m in tbl_entries if t_id in EXCLUDE_TABLES}
 for m in [m for m in est if m in ln_md5]: del est[m]; skipped["LN表掲載"] += 1
 
+# 推定が低すぎる譜面の補正: 難易度表に載っている譜面は、その表の同レベルの★中央値を下限にする(難しい譜面が易しいレベルに混ざるのを防ぐ)
+def level_medians(tid):
+    g = collections.defaultdict(list)
+    for t_id, lv, m in tbl_entries:
+        if t_id == tid and m in est and lv.isdigit(): g[lv].append(est[m][0])
+    return {lv: sorted(v)[len(v) // 2] for lv, v in g.items() if len(v) >= 3}
+floor = collections.defaultdict(float)
+for tid in (7, 3):   # 発狂BMS(2)は元のレベルがそのまま★なので補正不要
+    med = level_medians(tid)
+    for t_id, lv, m in tbl_entries:
+        if t_id == tid and m in est and lv in med: floor[m] = max(floor[m], med[lv])
+fixed = 0
+for m, f in floor.items():
+    if est[m][0] < f: est[m] = (f,) + est[m][1:]; fixed += 1
+skipped["下限で補正"] = fixed
+
 # --- 得意レベル: 平均点(重み付きクリアランプ)を★に対して単調減少の曲線(等張回帰)で当てはめ、MIN_AVG を下回る手前の★ ---
 def isotonic_decreasing(points):
     pts = sorted(points); xs = [x for x, _ in pts]; blocks = []
