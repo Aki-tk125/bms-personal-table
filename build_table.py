@@ -10,6 +10,7 @@ WEIGHT = {"Failed": 0, "LightAssistEasy": 0.25, "Easy": 0.5, "Normal": 0.75, "Ha
 MIN_AVG = 0.3        # 平均点がこの値以上の最も高い★を「得意レベル」とする
 MAX_PER_LEVEL = 100  # 各レベルの最大曲数
 EXCLUDE_CONFIDENCE = {"低"}   # 除外する信頼度
+EXCLUDE_TABLES = (10, 13)     # LN難易度 / Luminous に載っている譜面は除外(推定が LN の難しさを反映しないため)
 # 得意レベル a に対する★の範囲
 WARM = (-3.0, -0.5); FIT = (-0.5, 0.5); CHAL = (0.5, 1.5)
 
@@ -47,10 +48,14 @@ try:
     best = dict(s.execute("select chart_sha256, clear_type from score_best"))
     chart = {}   # md5 -> (sha256, title, artist)
     for sh, m, t, a in l.execute("select sha256, md5, title, artist from charts"): chart.setdefault(m, (sh, t, a))
-    tbl_entries = list(l.execute("select table_id, level, md5 from difficulty_table_entries where table_id in (7,2,3)"))
+    tbl_entries = list(l.execute("select table_id, level, md5 from difficulty_table_entries where table_id in (7,2,3,10,13)"))
     l.close(); s.close()
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+# LN系の難易度表に載っている譜面は、推定★が実態とずれるので除外する
+ln_md5 = {m for t_id, _, m in tbl_entries if t_id in EXCLUDE_TABLES}
+for m in [m for m in est if m in ln_md5]: del est[m]; skipped["LN表掲載"] += 1
 
 # --- 得意レベル: 平均点(重み付きクリアランプ)を★に対して単調減少の曲線(等張回帰)で当てはめ、MIN_AVG を下回る手前の★ ---
 def isotonic_decreasing(points):
