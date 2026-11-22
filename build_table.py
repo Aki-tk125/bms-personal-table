@@ -10,6 +10,7 @@ WEIGHT = {"Failed": 0, "LightAssistEasy": 0.25, "Easy": 0.5, "Normal": 0.75, "Ha
 MIN_AVG = 0.3        # 平均点がこの値以上の最も高い★を「得意レベル」とする
 MAX_PER_LEVEL = 100  # 各レベルの最大曲数
 EXCLUDE_CONFIDENCE = {"低"}   # 除外する信頼度
+TARGET_TABLES = (7, 2, 3)     # 対象の難易度表: Satellite / 発狂BMS / NEW GENERATION 発狂
 EXCLUDE_TABLES = (10, 13)     # LN難易度 / Luminous に載っている譜面は除外(推定が LN の難しさを反映しないため)
 # 得意レベル a に対する★の範囲
 WARM = (-3.0, -0.5); FIT = (-0.5, 0.5); CHAL = (0.5, 1.5)
@@ -52,6 +53,10 @@ try:
     l.close(); s.close()
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+# 対象の難易度表(Satellite / 発狂BMS / NG発狂)に載っている譜面だけを使う
+target_md5 = {m for t_id, _, m in tbl_entries if t_id in TARGET_TABLES}
+for m in [m for m in est if m not in target_md5]: del est[m]; skipped["対象表外"] += 1
 
 # LN系の難易度表に載っている譜面は、推定★が実態とずれるので除外する
 ln_md5 = {m for t_id, _, m in tbl_entries if t_id in EXCLUDE_TABLES}
